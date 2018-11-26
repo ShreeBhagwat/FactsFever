@@ -20,7 +20,7 @@ import ChameleonFramework
 import PCLBlurEffectAlert
 import SkeletonView
 
-class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UICollectionViewDelegateFlowLayout {
     //MARK: Outlets
     
     @IBOutlet weak var uploadButtonOutlet: UIBarButtonItem!
@@ -40,6 +40,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         // Do any additional setup after loading the view, typically from a nib.
         if #available(iOS 10.0, *) {
             collectionView.refreshControl = refreshControl
@@ -48,12 +49,10 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         }
         refreshControl.addTarget(self, action: #selector(refreshView), for: .valueChanged)
         refreshControl.tintColor = UIColor.white
-        if let layout = collectionView?.collectionViewLayout as? FactsFeverLayout {
-            layout.delegate = self
-        }
+   
         collectionView.backgroundColor = UIColor.black
         observeFactsFromFirebase()
-      
+     
 //        if let btn = self.navigationItem.rightBarButtonItem {
 //            btn.isEnabled = false
 //            btn.tintColor = #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1)
@@ -77,13 +76,6 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
 //    }
     
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        collectionView.reloadData()
-        if let layout = collectionView?.collectionViewLayout as? FactsFeverLayout {
-            layout.delegate = self
-        }
-    }
 
     //MARK:- Upload Facts
     
@@ -288,6 +280,47 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     let alert = UIAlertController(title: nil, message: "Please wait...", preferredStyle: .alert)
     
     
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "newCellTrial", for: indexPath)as? NewCellCollectionViewCell
+        var height:CGFloat = 400
+        let facts = factsArray[indexPath.item]
+        let cellClass = NewCellCollectionViewCell()
+        let imageWidth = CGFloat(facts.imageWidht)
+        let imageHieght = CGFloat(facts.imageHeight)
+        let width:CGFloat = self.view.frame.width
+        let imageSize = CGSize(width: imageWidth, height: imageHieght)
+        let boundingRect = CGRect(x: 0, y: 0, width: width, height: CGFloat(MAXFLOAT))
+        let rect = AVMakeRect(aspectRatio: imageSize, insideRect: boundingRect)
+        let heightimage = rect.size.height
+        cell?.imageHeightConstraint.constant = heightimage
+        let caption = facts.captionText
+        let captionHeight = estimatedFrameForText(text: caption!).height
+        let totalHeight = heightimage + captionHeight + 8 + 8 + 8 + 40
+        
+        return CGSize(width: width, height: totalHeight)
+        
+    }
+    
+    func height(for text: String, with font: UIFont, width: CGFloat) -> CGFloat {
+        let nsstring = NSString(string: text)
+        let maxHeight = CGFloat(1000)
+        let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
+        let textAttributes = [NSAttributedString.Key.font: font]
+        let boundingRect = nsstring.boundingRect(with: CGSize(width: width, height: maxHeight), options: options, attributes: textAttributes, context: nil)
+
+        return ceil(boundingRect.height)
+    }
+    
+    private func estimatedFrameForText(text:String) -> (CGRect){
+        let width: CGFloat = view.frame.width
+        let size = CGSize(width: width, height: 1000)
+        let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
+        
+        return NSString(string:text).boundingRect(with: size, options: options, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16)], context: nil)
+    }
+    
+ 
+    
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -304,7 +337,7 @@ extension ViewController: UICollectionViewDataSource{
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let facts = factsArray[indexPath.row]
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "newCellTrial", for: indexPath) as? NewCellCollectionViewCell
-        
+//        cell?.imageHeightConstraint.constant = 400
         cell?.configureCell(fact: facts)
         cell?.infoButton.addTarget(self, action: #selector(reportButtonPressed), for: .touchUpInside)
        
@@ -405,42 +438,43 @@ extension ViewController: UICollectionViewDelegate {
 
   
 }
-extension ViewController: FactsFeverLayoutDelegate {
-    func collectionView(CollectionView: UICollectionView, heightForThePhotoAt indexPath: IndexPath, with width: CGFloat) -> CGFloat {
-        let facts = factsArray[indexPath.item]
-        let imageSize = CGSize(width: CGFloat(facts.imageWidht), height: CGFloat(facts.imageHeight))
-        let boundingRect = CGRect(x: 0, y: 0, width: width, height: CGFloat(MAXFLOAT))
-        let rect = AVMakeRect(aspectRatio: imageSize, insideRect: boundingRect)
-        
-        return rect.size.height
-        
-    }
-    
-    func collectionView(CollectionView: UICollectionView, heightForCaptionAt indexPath: IndexPath, with width: CGFloat) -> CGFloat {
-        let fact = factsArray[indexPath.item]
-        let topPadding = CGFloat(8)
-        let bottomPadding = CGFloat(8)
-        let captionFont = UIFont.systemFont(ofSize: 15)
-        let viewHeight = CGFloat(40)
-        let captionHeight = self.height(for: fact.captionText, with: captionFont, width: width)
-        let height = topPadding + captionHeight + topPadding + viewHeight + bottomPadding + topPadding + 10
-        
-        return height
-        
-    }
-    
-    func height(for text: String, with font: UIFont, width: CGFloat) -> CGFloat {
-        let nsstring = NSString(string: text)
-        let maxHeight = CGFloat(1000)
-        let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
-        let textAttributes = [NSAttributedString.Key.font: font]
-        let boundingRect = nsstring.boundingRect(with: CGSize(width: width, height: maxHeight), options: options, attributes: textAttributes, context: nil)
-        
-        return ceil(boundingRect.height)
-    }
-    
-    
-}
+
+//extension ViewController: FactsFeverLayoutDelegate {
+//    func collectionView(CollectionView: UICollectionView, heightForThePhotoAt indexPath: IndexPath, with width: CGFloat) -> CGFloat {
+//        let facts = factsArray[indexPath.item]
+//        let imageSize = CGSize(width: CGFloat(facts.imageWidht), height: CGFloat(facts.imageHeight))
+//        let boundingRect = CGRect(x: 0, y: 0, width: width, height: CGFloat(MAXFLOAT))
+//        let rect = AVMakeRect(aspectRatio: imageSize, insideRect: boundingRect)
+//
+//        return rect.size.height
+//
+//    }
+//
+//    func collectionView(CollectionView: UICollectionView, heightForCaptionAt indexPath: IndexPath, with width: CGFloat) -> CGFloat {
+//        let fact = factsArray[indexPath.item]
+//        let topPadding = CGFloat(8)
+//        let bottomPadding = CGFloat(8)
+//        let captionFont = UIFont.systemFont(ofSize: 15)
+//        let viewHeight = CGFloat(40)
+//        let captionHeight = self.height(for: fact.captionText, with: captionFont, width: width)
+//        let height = topPadding + captionHeight + topPadding + viewHeight + bottomPadding + topPadding + 10
+//
+//        return height
+//
+//    }
+//
+//    func height(for text: String, with font: UIFont, width: CGFloat) -> CGFloat {
+//        let nsstring = NSString(string: text)
+//        let maxHeight = CGFloat(1000)
+//        let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
+//        let textAttributes = [NSAttributedString.Key.font: font]
+//        let boundingRect = nsstring.boundingRect(with: CGSize(width: width, height: maxHeight), options: options, attributes: textAttributes, context: nil)
+//
+//        return ceil(boundingRect.height)
+//    }
+//
+//
+//}
 
 
 

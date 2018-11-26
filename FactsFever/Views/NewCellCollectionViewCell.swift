@@ -102,11 +102,12 @@ class NewCellCollectionViewCell: UICollectionViewCell {
                 }
             }
     }
+
     
-    override func apply(_ layoutAttributes: UICollectionViewLayoutAttributes) {
-        super.apply(layoutAttributes)
-        if let attributes = layoutAttributes as? FactsFeverLayoutAttributes {
-            imageHeightConstraint.constant =  attributes.photoHeight
-        }
-    }
+//    override func apply(_ layoutAttributes: UICollectionViewLayoutAttributes) {
+//        super.apply(layoutAttributes)
+//        if let attributes = layoutAttributes as? FactsFeverLayoutAttributes {
+//            imageHeightConstraint.constant =  attributes.photoHeight
+//        }
+//    }
 }
